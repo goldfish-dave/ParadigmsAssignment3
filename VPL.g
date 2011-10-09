@@ -3,8 +3,6 @@ grammar VPL;
 options {
 	language=Python;
 	backtrack=true;
-//	output=AST;
-//	ASTLabelType=CommonTree;
 }
 
 tokens {
@@ -14,11 +12,17 @@ tokens {
 @init {
 self.memory = {}
 print "Init memory: " + str(self.memory)
+
+# Function definitions
 def lookup(ident):
 	return self.memory[ident]
 
 def new(ident,val):
 	self.memory[ident] = val
+}
+
+@after {
+print "Finaly memory: " + str(self.memory)
 }
 
 
@@ -48,13 +52,13 @@ print "Declaration"
 		;
 
 s		:	s2 ';' s
+		|	s2
 		|	
 		;
 
 s2		:	IDENT '=' e {
-print "Assignment"
+print "Assignment on: " + $IDENT.getText()
 }
-		|	
 		;
 
 e		:	e2 '+' e {

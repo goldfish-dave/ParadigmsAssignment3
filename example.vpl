@@ -1,5 +1,4 @@
 func mymin(a, b, c)
-	var d;
 	c = min(a, b) + 20;
-	d = b*4;
+	c = c
 end
