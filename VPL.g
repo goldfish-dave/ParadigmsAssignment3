@@ -11,7 +11,6 @@ tokens {
 
 @init {
 self.memory = {}
-print "Init memory: " + str(self.memory)
 
 # Function definitions
 def lookup(ident):
@@ -22,69 +21,77 @@ def new(ident,val):
 }
 
 @after {
-print "Finaly memory: " + str(self.memory)
 }
 
 
-prog	:	m EOF
+prog		
+@init {mapping = {}}
+		:
+		m[mapping] EOF
 		;
 
-m		:	f m
+m [inherited] returns [synth]
+		:	f[inherited] m[inherited]
 		|
 		;
 
-f		:	'func' IDENT p d s 'end' {
-print "Function declaration"
-}
+f [inherited] returns [synth]
+/*		:	'a' '=' e[inherited] 
+			{synth = $e.synth}
+			{print synth}
+		;
+*/
+
+		:	'func' IDENT p d[inherited] 
+			{
+				synth = $d.synth
+			}
+			s[synth] {print $s.synth} 'end' 
+		;
+p 
+		:	'(' l ')'
 		;
 
-p		:	'(' l ')'
-		;
-
-l		:	IDENT 
+l
+		:	IDENT 
 		|	IDENT ',' l	
 		;
 
-d		:	'var' l ';'	{
-print "Declaration"
-}
+d [inherited] returns [synth]
+@init {synth = inherited}
+		:	'var' l ';'	
 		|
 		;
 
-s		:	s2 ';' s
-		|	s2
-		|	
+s [inherited] returns [synth]
+		:	IDENT '=' e[inherited] 
+			{
+				synth = inherited
+				synth[str($IDENT.text)] = $e.synth
+			}
+			(';' s_1=s[synth] {synth = $s_1.synth})*
+		|	';' s_1=s[inherited] {synth = $s_1.synth}
+		|
 		;
 
-s2		:	IDENT '=' e {
-print "Assignment on: " + $IDENT.getText()
-}
+e [inherited] returns [synth]
+		:	e_2=e2[inherited] '+' e_1=e[$e2.synth] 
+		{synth = int($e_1.synth) + int($e_2.synth)}
+//		|	e2[inherited] '-' e[$e2.synth]
+		|	e2[inherited] {synth = $e2.synth}
 		;
 
-e		:	e2 '+' e {
-print "Addition"
-}
-		|	e2 '-' e {
-print "Subtraction"
-}
-		|	e2
+e2 [inherited] returns [synth]
+		:	/*e3[inherited] '*' e2[$e3.synth]
+		|	e3[inherited] '/' e2[$e3.synth]
+		|	*/e3[inherited] {synth = $e3.synth}
 		;
 
-e2		:	e3 '*' e2 {
-print "Multiplcation"
-}
-		|	e3 '/' e2 {
-print "Division"
-}
-		|	e3
-		;
-
-e3		:	'min' '(' e ',' e ')' {
-print "Minimization"
-}
-		|	'(' e ')'
-		|	IDENT
-		|	NUM
+e3 [inherited] returns [synth]
+		:	/*'min' '(' e_1=e[inherited] ',' e[$e_1.synth] ')' 
+		|	'(' e[inherited] ')'
+		|	IDENT {synth = inherited}*/ //make str() case
+		|	NUM {synth = int($NUM.text)}
 		;
 
 IDENT	:	('a'..'z'|'A'..'Z'|'_')('a'..'z'|'A'..'Z'|'0'..'9'|'_')*
