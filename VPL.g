@@ -25,7 +25,7 @@ def new(ident,val):
 
 
 prog		
-@init {mapping = {}}
+@init {mapping = []}
 		:
 		m[mapping] EOF
 		;
@@ -39,36 +39,42 @@ f [inherited] returns [synth]
 		:	'func' IDENT
 			//define function name here
 			{
-				synth = inherited
-				synth['.functionName'] = str($IDENT.text)
+				newFunction = {}
+				newFunction["funcName"] = str($IDENT.text)
+				inherited.append(newFunction)
+				declarations = []
 			}
-			p[synth] {synth = $p.synth} d[synth] {synth = $d.synth}
-			s[synth] {print $s.synth} 'end' 
+			p[inherited] {synth = $p.synth} d[synth] {synth = $d.synth}
+			s[synth] 'end' 
+			{ synth = $s.synth 
+			  print synth }
 		;
 p [inherited] returns [synth] 
-		:	'(' l ')'
-		//arguments are initialised here
-		{
-			synth = inherited
-			for var in $l.text.split(','):
-				synth[str(var).strip()] = ''
-		}
+		:	{ parameters = [] }
+			'(' l[parameters] ')' 
+			{ inherited[-1]["parameters"] =  $l.synth
+			  synth = inherited
+			  print synth }
 		;
 
-l
+l [inherited] returns [synth]
 		:	IDENT 
-		|	IDENT ',' l	
+		{ inherited.append(str($IDENT.text))
+		  synth = inherited }
+		|	IDENT 
+		{ inherited.append(str($IDENT.text)) } 
+			',' l_1=l[inherited]
+		{ synth = $l_1.synth }
 		;
 
 d [inherited] returns [synth]
-@init {synth = inherited}
-		:	'var' l ';'
-		//variables are initialised here
-		{
-			for var in $l.text.split(','):
-				synth[str(var).strip()] = ''
-		}
-		|
+		:	{ parameters = [] }
+			'var' l[parameters] ';'
+		{ inherited[-1]["declarations"] = $l.synth
+		  synth = inherited }
+		| 
+		{ inherited[-1]["declarations"] = []
+		  synth = inherited }
 		;
 
 s [inherited] returns [synth]
@@ -78,7 +84,7 @@ s [inherited] returns [synth]
 				synth = inherited
 				synth[str($IDENT.text)] = $e.synth
 			}
-			(';' s[synth] {print "synth = ", synth})*
+			(';' s[{}] {print "synth = ", synth})*
 //			(';' s_1=s[synth] {synth = $s_1.synth})*
 		|	';' s_1=s[inherited] {synth = $s_1.synth}
 		|
