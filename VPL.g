@@ -42,11 +42,12 @@ f [inherited] returns [synth]
 				newFunction = {}
 				newFunction["funcName"] = str($IDENT.text)
 				inherited.append(newFunction)
-				declarations = []
+				statements = []
 			}
 			p[inherited] {synth = $p.synth} d[synth] {synth = $d.synth}
-			s[synth] 'end' 
-			{ synth = $s.synth 
+			s[statements] 'end' 
+			{ inherited[-1]["statements"] = $s.synth
+			  synth = inherited 
 			  print synth }
 		;
 p [inherited] returns [synth] 
@@ -78,15 +79,11 @@ d [inherited] returns [synth]
 		;
 
 s [inherited] returns [synth]
-		:	IDENT '=' e
+		:	IDENT '=' e { synth = [] }
 			//variable assignment occurs here, check if variable exists etc.
-			{
-				synth = inherited
-				synth[str($IDENT.text)] = $e.synth
-			}
-			(';' s[{}] {print "synth = ", synth})*
+			(';' s[None] )*
 //			(';' s_1=s[synth] {synth = $s_1.synth})*
-		|	';' s_1=s[inherited] {synth = $s_1.synth}
+		|	';' s_1=s[None] {synth = []}
 		|
 		;
 
