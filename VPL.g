@@ -36,25 +36,23 @@ m [inherited] returns [synth]
 		;
 
 f [inherited] returns [synth]
-/*		:	'a' '=' e[inherited] 
-			{synth = $e.synth}
-			{print synth}
-		;
-*/
-
-		:	'func' IDENT 
+		:	'func' IDENT
+			//define function name here
 			{
 				synth = inherited
 				synth['.functionName'] = str($IDENT.text)
 			}
-				p d[synth] 
-			{
-				synth = $d.synth
-			}
+			p[synth] {synth = $p.synth} d[synth] {synth = $d.synth}
 			s[synth] {print $s.synth} 'end' 
 		;
-p 
+p [inherited] returns [synth] 
 		:	'(' l ')'
+		//arguments are initialised here
+		{
+			synth = inherited
+			for var in $l.text.split(','):
+				synth[str(var).strip()] = ''
+		}
 		;
 
 l
@@ -64,18 +62,24 @@ l
 
 d [inherited] returns [synth]
 @init {synth = inherited}
-		:	'var' l ';'	
+		:	'var' l ';'
+		//variables are initialised here
+		{
+			for var in $l.text.split(','):
+				synth[str(var).strip()] = ''
+		}
 		|
 		;
 
 s [inherited] returns [synth]
 		:	IDENT '=' e
-			//variable assignment
+			//variable assignment occurs here, check if variable exists etc.
 			{
 				synth = inherited
 				synth[str($IDENT.text)] = $e.synth
 			}
-			(';' s_1=s[synth] {synth = $s_1.synth})*
+			(';' s[synth] {print "synth = ", synth})*
+//			(';' s_1=s[synth] {synth = $s_1.synth})*
 		|	';' s_1=s[inherited] {synth = $s_1.synth}
 		|
 		;
@@ -128,7 +132,7 @@ e3 returns [synth]
 		:	'min' '(' e_1=e ',' e_2=e ')' 
 		{synth = min(float($e_1.synth), float($e_2.synth))}
 		|	'(' e ')' {synth = $e.synth}
-//		|	IDENT {synth = inherited} //make str() case
+//		|	IDENT {synth = inherited} //make str() case, do lookup here
 		|	NUM {synth = float($NUM.text)}
 		;
 
