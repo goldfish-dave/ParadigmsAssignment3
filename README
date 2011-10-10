@@ -1,1 +1,5 @@
 As you can see, jar files, build directory and .s files are ignored, import your own.
+
+Things you will have to do:
+- move the antlr jar file into this directory (and check it has the same name as in compile.sh)
+- confirm you environment variable CLASSPATH is pointing to the appropriate location
