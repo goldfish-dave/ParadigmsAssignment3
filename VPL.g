@@ -42,7 +42,12 @@ f [inherited] returns [synth]
 		;
 */
 
-		:	'func' IDENT p d[inherited] 
+		:	'func' IDENT 
+			{
+				synth = inherited
+				synth['.functionName'] = str($IDENT.text)
+			}
+				p d[synth] 
 			{
 				synth = $d.synth
 			}
