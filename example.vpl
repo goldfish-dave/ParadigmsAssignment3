@@ -1,3 +1,4 @@
 func mymin(a, b, c)
-	c = 20 + 100
+var x, y, z;
+	c = 2
 end
