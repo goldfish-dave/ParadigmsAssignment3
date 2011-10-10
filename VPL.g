@@ -112,8 +112,8 @@ e returns [synth]
 		:	e_2=e2 '+' e_1=e 
 		{synth = int($e_1.synth) + int($e_2.synth)}
 //		|	e2 '-' e[$e2.synth]
-//		|	e_2=e2 '-' e_1=e[$e_2.synth] 
-//		{synth = int($e_2.synth) - int($e_1.synth)}
+		|	e_2=e2 '-' e_1=e
+		{synth = int($e_2.synth) - int($e_1.synth)}
 		|	e2 {synth = $e2.synth}
 		;
 
