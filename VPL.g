@@ -78,13 +78,13 @@ s [inherited] returns [synth]
 				synth = inherited
 				synth[str($IDENT.text)] = $e.synth
 			}
-			(';' s[synth] {print "synth = ", synth})*
+//			(';' s_r=s[synth] {synth = $s_r.synth})*
 //			(';' s_1=s[synth] {synth = $s_1.synth})*
 		|	';' s_1=s[inherited] {synth = $s_1.synth}
 		|
 		;
 
-//e values return pure floategers, not the attribute grammar
+//e values return pure floats, not the attribute grammar
 /*
 e [inherited] returns [synth]
 @init {print inherited}
