@@ -1,0 +1,20 @@
+.text
+.global mymin
+.type mymin, @function
+.p2align 4,,15
+
+mymin:
+
+pushq	%rbp
+
+movq	%rsp, %rbp
+
+pushq	%rbx
+
+# allocate memory
+
+# function body
+
+popq	%rbx
+leave
+ret

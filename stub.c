@@ -6,7 +6,7 @@
 
 #define NUM (100)
 
-//extern void mymin(long, float *, float *, float *);
+extern void mymin(long, float *, float *, float *);
 
 int main (void) {
 	float *a = malloc(sizeof(float)*NUM + SSE_ALIGN),
@@ -23,10 +23,10 @@ int main (void) {
 		b[i] = NUM - i;
 	}
 
-	//mymin(NUM, a, b, c);
+	mymin(NUM, a, b, c);
 
 	for (i = 0; i < NUM; i++) {
-		printf(c[i]);
+		//printf(c[i]);
 	}
 
 	return 0;
