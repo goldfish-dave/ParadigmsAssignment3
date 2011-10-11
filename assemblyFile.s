@@ -26,6 +26,9 @@ andq $-16, %rsp
 #movq %rsi, %r10
 #movq %rdx, %r11
 
+#create a constant, put in xmm2
+leaq $a, %xmm2
+
 # assign shit to an ident
 movq %rsi, %rax
 movq %rcx, %r10
@@ -53,7 +56,7 @@ ret
 
 .data
 .align 16
-.const a
+.const <10>
 	.float 10
 	.float 10
 	.float 10
