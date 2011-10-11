@@ -22,13 +22,12 @@ int main (void) {
 		a[i] = i;
 		b[i] = NUM - i;
 	}
-
+	
+	*a = (float) 123;
+	printf("a = %f\n", a[0]);
 	mymin(NUM, a, b, c);
 	
-//	printf("here");
-	for (i = 0; i < NUM; i++) {
-		printf("%f", c[i]);
-	}
+	printf("c = %f", c[0]);
 
 	return 0;
 }
