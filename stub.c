@@ -1,10 +1,10 @@
 #include <stdlib.h>
-
+#include <stdio.h>
 #define align(s,a) (((size_t)(s) + ((a) - 1)) & ~((size_t) (a) - 1))
 
 #define SSE_ALIGN (16)
 
-#define NUM (100)
+#define NUM (10)
 
 extern void mymin(long, float *, float *, float *);
 
@@ -24,9 +24,10 @@ int main (void) {
 	}
 
 	mymin(NUM, a, b, c);
-
+	
+//	printf("here");
 	for (i = 0; i < NUM; i++) {
-		//printf(c[i]);
+		printf("%f", c[i]);
 	}
 
 	return 0;
