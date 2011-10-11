@@ -12,7 +12,8 @@ fi
 java org.antlr.Tool -o ${BUILD_DIR} VPL.g
 touch ${BUILD_DIR}/__init__.py
 
-./vpl2asm.py < ${1} > ${1}.s
+#./vpl2asm.py < ${1} > ${1}.s
+./vpl2asm.py < ${1} > compiledAssembly.s
 
 cat ${1}.s
 #gcc -Wall -W main.c ${1}.s -o my_program
