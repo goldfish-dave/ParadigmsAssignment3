@@ -78,7 +78,7 @@ s [inherited] returns [synth]
 				synth = inherited
 				synth[str($IDENT.text)] = $e.synth
 			}
-//			(';' s_r=s[synth] {synth = $s_r.synth})*
+			(';' s_r=s[synth] {print synth} {synth = $s_r.synth})*
 //			(';' s_1=s[synth] {synth = $s_1.synth})*
 		|	';' s_1=s[inherited] {synth = $s_1.synth}
 		|
