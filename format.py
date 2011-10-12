@@ -30,18 +30,61 @@ statements =
 funcdef =	[
 				{
 					'declarations' : ['x', 'y', 'z']
-					, 'statements' : [('c', 20), ('c', ['c', 'plus', 'b'])]
+#					, 'statements' : [('c', 20), ('c', ['c', 'plus', 'b'])]
+
+					, 'statements' : [('x', 20)]#, ('c', 'x')]
 					, 'parameters' : ['a', 'b', 'c']
 					, 'funcName' : 'mymin'
 				}
 
 			]
 
+operationCode = """
+movq %rdi, %rbx
+shrq $2, %rbx
+jz .loop_end<loopcounter>
 
+.loop_begin<loopcounter>:
+movaps (%rax), %xmm0
+movaps (%r10), %xmm1
+
+#operation
+<operation> %xmm0, %xmm1
+
+movaps %xmm1, (%r11)
+
+#if rax == const etc.
+addq $16, %rax
+addq $16, %r11
+decq %rbx
+jnz .loop_begin<loopcounter>
+
+.loop_end<loopcounter>:
+"""
+
+assignmentCode = """
+#assign something to a variable
+
+movq %rdi, %rbx
+shl $2, %rbx
+jz .loop_end<loopcounter>
+
+.loop_begin<loopcounter>:
+
+movaps (%rax), %xmm0
+movaps %xmm0, (%r10)
+
+addq $16, %rax
+addq $16, %r10
+decq %rbx
+jnz .loop_begin<loopcounter>
+
+.loop_end<loopcounter>:
+"""
 class registryMap:
 	def __init__(self, parameters, local):
 		self.mapping = {}
-
+		self.constants = []
 		parameterRegisters = ['%rsi', '%rdx', '%rcx', '%r8', 'r9']
 		for parameter in range(len(parameters)):
 			self.mapping[parameters[parameter]] = "movq " + parameterRegisters[parameter] + ', %s' 
@@ -49,41 +92,104 @@ class registryMap:
 		
 		varspot = 0
 		for var in local:
-			self.mapping[var] = "#assign " + str(varspot) + "th variable to %s"
-			self.mapping +="""
-	movq %rdi, %s
-	imulq $4, %s, %s
-	addq $16, %s
-	imulq $""" + str(varspot) + """, %s, %s
-	subq %rbp, %s
-	negq %s
-	andq $-16, %s"""
-
+			self.mapping[var] = "#assign #" + str(varspot + 1) + " variable to %s\n"
+			self.mapping[var] +="""
+movq %rdi, %s
+imulq $4, %s, %s
+addq $16, %s
+imulq $""" + str(varspot + 1) + """, %s, %s
+subq %rbp, %s
+negq %s
+andq $-16, %s
+"""
 
 			varspot += 1
-		print self.mapping
-
-def createLocals(localVars):
-	assignMemory = """
-#creating memory for local variables
-	blah %i
-	""".strip() % len(localVars)
 	
-	print assignMemory
+	def putVar(self, var, register): #generates the assembly to put the memory address of variable var into the register specified
+		if var not in self.mapping: #check if it's a constant
+			try:
+				self.constants += [float(var)]
+				return 'leaq .const' + str(self.constants[-1]) + ', ' + register
+
+			except ValueError:
+				print "undeclared variable"
+		return self.mapping[var].replace('%s', register)
 
 def createPreamble(name):
 
-	preamble = """
-#function definitions
-	%s %s %s
-	""" % (name, name, name)
+	preamble = """####Function Definitions####
+
+.text
+.global %s
+.type %s, @function
+.p2align 4,,15
+
+%s:
+
+pushq	%rbp
+movq	%rsp, %rbp
+pushq	%rbx
+""".replace('%s', name)
 	print preamble
 
+def createLocals(localVars):
+	assignMemory = """####Creating memory for local variables####
+
+movq %rdi, %rax
+imulq $4, %rax, %rax
+addq $16, %rax
+imulq $%s, %rax, %rax
+subq %rax, %rsp
+andq $-16, %rsp
+""".replace('%s', str(len(localVars)))
+	
+	print assignMemory
+
 def generateStatements(statements, regmap):
-	pass
+	print '####Code body####\n'
+	loopval = 0
+
+	for statement in statements:
+#		print statement
+		if type(statement[1]) ==  type(list()): 
+
+			#assignment involving operations, x = a + b
+
+			if statement[1][1] == 'plus':
+				print "##%s = %s + %s##\n" %(statement[0], statement[1][0], statement[1][2])
+				print regmap.putVar(statement[1][0], '%rax')
+				print regmap.putVar(statement[1][2], '%r10')
+				print regmap.putVar(statement[0], '%r11')
+				print operationCode.replace('<loopcounter>', str(loopval)).replace('<operation>', 'addps')
+
+		else: #straight assignment, x = y
+			print "##%s = %s##\n" % (statement[0], statement[1])
+			print regmap.putVar(statement[0], '%r10')
+			print regmap.putVar(statement[1], '%rax')
+			print assignmentCode.replace('<loopcounter>', str(loopval))
+
+		loopval += 1
+	
+	return regmap
+
+def createPostamble(regmap):
+	print "####Function Epilogue####"
+	print """
+popq	%rbx
+leave
+ret"""
+	if regmap.constants:
+		print """
+.data
+.align 16"""
+		for constant in regmap.constants:
+			print """.const%f:
+	.float %f
+	.float %f
+	.float %f
+	.float %f""".replace('%f', str(constant))
 
 if __name__ == "__main__":
-	print funcdef
 	
 	for func in funcdef:
 		
@@ -91,5 +197,6 @@ if __name__ == "__main__":
 		createLocals(func['declarations'])
 		
 		regmap = registryMap(func['parameters'], func['declarations'])
-
-		generateStatements(func['statements'], regmap)
+		updatedRegmap = generateStatements(func['statements'], regmap)
+		
+		createPostamble(updatedRegmap)

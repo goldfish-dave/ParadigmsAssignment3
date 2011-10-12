@@ -12,22 +12,21 @@ int main (void) {
 	float *a = malloc(sizeof(float)*NUM + SSE_ALIGN),
 		  *b = malloc(sizeof(float)*NUM + SSE_ALIGN),
 		  *c = malloc(sizeof(float)*NUM + SSE_ALIGN);
-	int i;
 
 	a = (float *) align(a, SSE_ALIGN);
 	b = (float *) align(b, SSE_ALIGN);
 	c = (float *) align(c, SSE_ALIGN);
 
-	for (i = 0; i < NUM; i++) {
+/*	for (i = 0; i < NUM; i++) {
 		a[i] = i;
 		b[i] = NUM - i;
 	}
-	
+*/	
 	*a = (float) 123;
-	printf("a = %f\n", a[0]);
+	printf("before mymin()\na = %f\nb = %f\nc = %f\n", a[0], b[0], c[0]);
 	mymin(NUM, a, b, c);
-	
-	printf("c = %f", c[0]);
+		
+	printf("after mymin()\na = %f\nb = %f\nc = %f", a[0], b[0], c[0]);
 
 	return 0;
 }
