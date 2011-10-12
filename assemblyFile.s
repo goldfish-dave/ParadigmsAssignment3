@@ -19,8 +19,7 @@ imulq $4, %rax, %rax
 subq %rax, %rsp
 andq $-16, %rsp
 
-#create a constant, put in xmm2
-#leaq $.const<10.0>, %xmm2
+
 
 ### function body ###
 
@@ -37,9 +36,9 @@ movq %rcx, %r10
 
 movq %rdi, %rbx
 shl $2, %rbx
-jz loop_end
+jz .loop_end0
 
-loop_begin:
+.loop_begin0:
 
 movaps (%rax), %xmm0
 movaps %xmm0, (%r10)
@@ -47,20 +46,26 @@ movaps %xmm0, (%r10)
 addq $16, %rax
 addq $16, %r10
 decq %rbx
-jnz loop_begin
+jnz .loop_begin0
 
-loop_end:
+.loop_end0:
+
+
 
 # add shit together, c = c + a
 movq %rsi, %rax
 movq %rcx, %r10
 movq %rcx, %r11
 
+#create a constant c = c + 10
+leaq .const10.0, %rax
+
+
 movq %rdi, %rbx
 shrq $2, %rbx
-jz loop_end
+jz .loop_end1
 
-loop_begin:
+.loop_begin1:
 movaps (%rax), %xmm0
 movaps (%r10), %xmm1
 
@@ -73,9 +78,9 @@ movaps %xmm1, (%r11)
 addq $16, %rax
 addq $16, %r11
 decq %rbx
-jnz loop_begin
+jnz .loop_begin1
 
-loop_end:
+.loop_end1:
 
 
 # function epilogue
@@ -85,9 +90,9 @@ ret
 
 .data
 .align 16
-/*.const 10.0:
+.const10.0:
 	.float 10.0
 	.float 10.0
 	.float 10.0
 	.float 10.0
-*/
+
