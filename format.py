@@ -63,8 +63,6 @@ jnz .loop_begin<loopcounter>
 """
 
 assignmentCode = """
-#assign something to a variable
-
 movq %rdi, %rbx
 shl $2, %rbx
 jz .loop_end<loopcounter>
