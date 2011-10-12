@@ -46,10 +46,21 @@ class registryMap:
 		for parameter in range(len(parameters)):
 			self.mapping[parameters[parameter]] = "movq " + parameterRegisters[parameter] + ', %s' 
 
-			
-#		for var in local:
-				
+		
+		varspot = 0
+		for var in local:
+			self.mapping[var] = "#assign " + str(varspot) + "th variable to %s"
+			self.mapping +="""
+	movq %rdi, %s
+	imulq $4, %s, %s
+	addq $16, %s
+	imulq $""" + str(varspot) + """, %s, %s
+	subq %rbp, %s
+	negq %s
+	andq $-16, %s"""
 
+
+			varspot += 1
 		print self.mapping
 
 def createLocals(localVars):
