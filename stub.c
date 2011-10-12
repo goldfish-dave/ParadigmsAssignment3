@@ -4,7 +4,7 @@
 
 #define SSE_ALIGN (16)
 
-#define NUM (10)
+#define NUM (100)
 
 extern void mymin(long, float *, float *, float *);
 

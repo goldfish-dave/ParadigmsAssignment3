@@ -90,14 +90,14 @@ class registryMap:
 			self.mapping[parameters[parameter]] = "movq " + parameterRegisters[parameter] + ', %s' 
 
 		
-		varspot = 0
+		varspot = 1
 		for var in local:
-			self.mapping[var] = "#assign #" + str(varspot + 1) + " variable to %s\n"
+			self.mapping[var] = "#assign #" + str(varspot) + " variable to %s\n"
 			self.mapping[var] +="""
 movq %rdi, %s
 imulq $4, %s, %s
 addq $16, %s
-imulq $""" + str(varspot + 1) + """, %s, %s
+imulq $""" + str(varspot) + """, %s, %s
 subq %rbp, %s
 negq %s
 andq $-16, %s
@@ -126,9 +126,9 @@ def createPreamble(name):
 
 %s:
 
-pushq	%rbp
-movq	%rsp, %rbp
-pushq	%rbx
+pushq %rbp
+movq %rsp, %rbp
+pushq %rbx
 """.replace('%s', name)
 	print preamble
 
