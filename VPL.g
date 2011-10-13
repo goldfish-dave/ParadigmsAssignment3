@@ -5,135 +5,122 @@ options {
 	backtrack=true;
 }
 
-/*tokens {
-	print='print';
-}*/
-
-@init {
-self.memory = {}
-
-# Function definitions
-def lookup(ident):
-	return self.memory[ident]
-
-def new(ident,val):
-	self.memory[ident] = val
-}
-
-@after {
-}
-
-
 prog		
-@init {mapping = {}}
+@init {mapping = []}
 		:
 		m[mapping] EOF
+		{ print ($m.allFunctions) }
 		;
 
-m [inherited] returns [synth]
-		:	f[inherited] m[inherited]
-		|
+// breaks the file into functions
+m [someFunctions] returns [allFunctions]
+		:	f { someFunctions.append($f.function) } m_1=m[someFunctions] { allFunctions = $m_1.allFunctions }
+		|   { allFunctions = someFunctions }
 		;
 
-f [inherited] returns [synth]
+// breaks functions into their name, parameters, declared local variables and statements
+f returns [function]
 		:	'func' IDENT
 			//define function name here
 			{
-				synth = inherited
-				synth['.functionName'] = str($IDENT.text)
+				function = {}
+				function["funcName"] = str($IDENT.text)
+				emptyStatements = []
 			}
-			p[synth] {synth = $p.synth} d[synth] {synth = $d.synth}
-			s[synth] {print $s.synth} 'end' 
-		;
-p [inherited] returns [synth] 
-		:	'(' l ')'
-		//arguments are initialised here
-		{
-			synth = inherited
-			for var in $l.text.split(','):
-				synth[str(var).strip()] = ''
-		}
+			p { function["parameters"] = $p.parameters } d { function["declarations"] = $d.declarations }
+			s[emptyStatements] 'end' 
+			{ function["statements"] = $s.allStatements }
 		;
 
-l
+// breaks down the function parameters
+p returns [parameters] 
+		:	{ emptyVariables = [] } '(' l[emptyVariables] ')' 
+		{  parameters = $l.allVariables } 
+		;
+
+// breaks down the function variable declarations
+d returns [declarations]
+		:	{ emptyVariables = [] } 'var' l[emptyVariables] ';'
+		{ declarations = $l.allVariables }
+		| 
+		{ declarations = [] }
+		;
+
+// breaks down a series of declarations, used by both parameters and declarations
+l [someVariables] returns [allVariables]
 		:	IDENT 
-		|	IDENT ',' l	
+		{ someVariables.append(str($IDENT.text))
+		  allVariables = someVariables }
+		|	IDENT 
+		{ someVariables.append(str($IDENT.text)) } 
+			',' l_1=l[someVariables]
+		{ allVariables = $l_1.allVariables }
 		;
 
-d [inherited] returns [synth]
-@init {synth = inherited}
-		:	'var' l ';'
-		//variables are initialised here
-		{
-			for var in $l.text.split(','):
-				synth[str(var).strip()] = ''
+// breaks down the statements of a function
+s [someStatements] returns [allStatements]
+		:	s2 
+		{ statement = $s2.statement
+		  someStatements.append(statement) }
+			';' s_1=s[someStatements]
+		{ allStatements = $s_1.allStatements }
+		| { allStatements = someStatements }
+		;
+
+// a single statement
+s2 returns [statement]
+		:	IDENT '=' e 
+		{ rhs = $e.expression
+		  lhs = str($IDENT.text)
+		  statement = (lhs , rhs)
 		}
-		|
 		;
 
-s [inherited] returns [synth]
-		:	IDENT '=' e
-			//variable assignment occurs here, check if variable exists etc.
-			{
-				synth = inherited
-				synth[str($IDENT.text)] = $e.synth
-			}
-			(';' s[synth] {print "synth = ", synth})*
-//			(';' s_1=s[synth] {synth = $s_1.synth})*
-		|	';' s_1=s[inherited] {synth = $s_1.synth}
-		|
+// breaks down expressions into e2 or plus/mins 
+e returns [expression]
+		:	e2'+' e_1=e
+		{ op = "+"
+		  arg1 = $e2.expression
+		  arg2 = $e_1.expression
+		  expression = [op, arg1, arg2]
+		}
+		|	e2 '-' e_1=e 
+		{ op = "-"
+		  arg1 = $e2.expression
+		  arg2 = $e_1.expression
+		  expression = [op, arg1, arg2]
+		}
+		|	e2 	 { expression = $e2.expression }
 		;
 
-//e values return pure floategers, not the attribute grammar
-/*
-e [inherited] returns [synth]
-@init {print inherited}
-		:	e_2=e2[inherited] '+' {synth = $e_2.synth} e_1=e[synth] 
-		{synth = float($e_1.synth) + float($e_2.synth)}
-//		|	e2[inherited] '-' e[$e2.synth]
-//		|	e_2=e2[inherited] '-' e_1=e[$e_2.synth] 
-//		{synth = float($e_2.synth) - float($e_1.synth)}
-		|	e2[inherited] {synth = $e2.synth}
+// breaks down expressions into e3 or mult/div
+e2 returns [expression]
+		:	e3 '*' e2_1=e2
+		{ op = "*"
+		  arg1 = $e3.expression
+		  arg2 = $e2_1.expression
+		  expression = [op, arg1, arg2]
+		}
+		|	e3 '/' e2_1=e2 
+		{ op = "/"
+		  arg1 = $e3.expression
+		  arg2 = $e2_1.expression
+		  expression = [op, arg1, arg2]
+		}
+		|	e3 { expression = $e3.expression }
 		;
 
-e2 [inherited] returns [synth]
-		:	e3[inherited] '*' //{synth = $e3.synth} e2[synth]
-//			e_3=e3[inherited] '+' e_2=e2[$e_3.synth] 
-//		{synth = float($e_1.synth) + float($e_2.synth)}
-		//|	e3[inherited] '/' e2[$e3.synth]
-		|	e3[inherited] {synth = $e3.synth}
-		;
-
-e3 [inherited] returns [synth]
-		:	/*'min' '(' e_1=e[inherited] ',' e[$e_1.synth] ')' 
-		|	'(' e[inherited] ')'
-		|	IDENT {synth = inherited} //make str() case
-		|	NUM {synth = float($NUM.text)}
-		;
-*/
-
-e returns [synth]
-		:	e_2=e2 '+' e_1=e 
-		{synth = float($e_1.synth) + float($e_2.synth)}
-		|	e_2=e2 '-' e_1=e
-		{synth = float($e_2.synth) - float($e_1.synth)}
-		|	e2 {synth = $e2.synth}
-		;
-
-e2 returns [synth]
-		:	e_3=e3 '*' e_2=e2 
-		{synth = float($e_3.synth) * float($e_2.synth)}
-		|	e_3=e3 '/' e_2=e2
-		{synth = float($e_3.synth) / float($e_2.synth)}
-		|	e3 {synth = $e3.synth}
-		;
-
-e3 returns [synth]
+// breaks expressions down into min calls, parenthesis, idents or nums
+e3 returns [expression]
 		:	'min' '(' e_1=e ',' e_2=e ')' 
-		{synth = min(float($e_1.synth), float($e_2.synth))}
-		|	'(' e ')' {synth = $e.synth}
-//		|	IDENT {synth = inherited} //make str() case, do lookup here
-		|	NUM {synth = float($NUM.text)}
+		{ op = "min"
+		  arg1 = $e_1.expression
+		  arg2 = $e_2.expression 
+		  expression = [op, arg1, arg2]
+		}
+		|	'(' e ')' { expression = $e.expression }
+		|	IDENT { expression = str($IDENT.text) }
+		|	NUM   { expression = float($NUM.text) }
 		;
 
 IDENT	:	('a'..'z'|'A'..'Z'|'_')('a'..'z'|'A'..'Z'|'0'..'9'|'_')*

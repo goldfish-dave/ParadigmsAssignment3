@@ -1,4 +1,4 @@
 func mymin(a, b, c)
-var x, y, z;
-	c = 2
+	var x, y, z;
+	c = 2;
 end

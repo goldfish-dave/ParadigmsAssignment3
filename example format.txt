@@ -1,0 +1,26 @@
+[
+	{	'declarations': ['x', 'y', 'z'],
+	 	'statements': [],
+	 	'parameters': ['a', 'b', 'c'],
+	 	'funcName': 'mymin'
+	}
+]
+
+
+	
+remember, statements are only of the form:
+
+IDENT = factor
+IDENT = factor op factor
+
+and in the simple case a factor is either a variable or a constant
+
+so expect statements to look like this:
+
+statements = 
+	[ 
+		( 'c' , 'b' ),
+		( 'x' , [ 'a', 'plus', 'c' ] ),
+		( 'a' , [ 'x', 'mult', 'b' ] ),
+		( 'y' , [ 'a', 'min' , 'x' ] )
+	]
