@@ -32,7 +32,8 @@ funcdef =	[
 					'declarations' : ['x', 'y', 'z']
 #					, 'statements' : [('c', 20), ('c', ['c', 'plus', ['a', 'plus' 'b']])]
 			
-					, 'statements' : [('c', ['plus' , ['plus', 'a', 'c'] , ['plus', 'd', 'b']])]
+#					, 'statements' : [('c', ['plus', ['mult', 'a', 'b'], ['mult', 'a', 'b']]) ]
+					, 'statements' : [('c', ['plus' , ['plus', ['plus', 'a', 'a'], 'c'] , ['plus', 'd', 'b']])]
 #					, 'statements' : [('c', ['plus' , 'c' , ['plus', ['plus', 'c', 'd'], 'b']])]
 #					, 'statements' : [('x', 20)]#, ('c', 'x')]
 					, 'parameters' : ['a', 'b', 'c']
@@ -230,15 +231,15 @@ def unwrap(expression, regmap): #unwraps a statement: ('c', ['a', 'plus' ['a', '
 
 #			statements = statements[:-1]
 		statements += [expression[0], unwrap(expr1, regmap), unwrap(expr2, regmap)] 
-		print statements, "here3"
+#		print statements, "here3"
 
 	return statements
 
 def assignmentParser(statement):
-	operations = []
+	operations = ['plus']
 	for token in statement:
-#		if token in 
-		pass
+		if token in operations:
+			print statement[0]	
 def createPostamble(regmap):
 	print "####Function Epilogue####"
 	print """
