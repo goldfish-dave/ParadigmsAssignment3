@@ -3,6 +3,7 @@
 	 	'statements': [],
 	 	'parameters': ['a', 'b', 'c'],
 	 	'funcName': 'mymin'
+		'linearVars' : 10
 	}
 ]
 
@@ -30,11 +31,13 @@ statements =
 funcdef =	[
 				{
 					'declarations' : ['x', 'y', 'z']
-#					, 'statements' : [('c', 20), ('c', ['c', 'plus', 'b'])]
+#					, 'statements' : [('c', 20), ('c', ['c', 'plus', ['a', 'plus' 'b']])]
 
+#					, 'statements' : [('c', ['c', 'plus', ['a', 'plus' 'b']])]
 					, 'statements' : [('x', 20)]#, ('c', 'x')]
 					, 'parameters' : ['a', 'b', 'c']
 					, 'funcName' : 'mymin'
+					, 'linearVars' : 10
 				}
 
 			]
@@ -130,7 +133,7 @@ pushq %rbx
 """.replace('%s', name)
 	print preamble
 
-def createLocals(localVars):
+def createLocals(localVars, linearVars):
 	assignMemory = """####Creating memory for local variables####
 
 movq %rdi, %rax
@@ -139,7 +142,7 @@ addq $16, %rax
 imulq $%s, %rax, %rax
 subq %rax, %rsp
 andq $-16, %rsp
-""".replace('%s', str(len(localVars)))
+""".replace('%s', str(len(localVars) + linearVars))
 	
 	print assignMemory
 
@@ -149,6 +152,7 @@ def generateStatements(statements, regmap):
 
 	for statement in statements:
 #		print statement
+#		"""
 		if type(statement[1]) ==  type(list()): 
 
 			#assignment involving operations, x = a + b
@@ -163,12 +167,26 @@ def generateStatements(statements, regmap):
 		else: #straight assignment, x = y
 			print "##%s = %s##\n" % (statement[0], statement[1])
 			print regmap.putVar(statement[0], '%r10')
-			print regmap.putVar(statement[1], '%rax')
-			print assignmentCode.replace('<loopcounter>', str(loopval))
+			constcheck = regmap.putVar(statement[1], '%rax')
+
+			print constcheck
+			if constcheck.split()[0] == 'leaq':
+				print assignmentCode.replace('<loopcounter>', str(loopval)).replace('addq $16, %rax', '#line "addq $16, %rax" removed because RHS is a constant\n')
+			else:
+				print assignmentCode.replace('<loopcounter>', str(loopval))
 
 		loopval += 1
-	
+#		"""
+#		print 'unwrap = ', unwrap(statement, regmap)[1]
 	return regmap
+
+def unwrap(expression, regmap): #unwraps a statement: ('c', ['a', 'plus' ['a', 'plus', 'b']]) ==> [<x1 = a + b>, <c = a + x1>]
+	
+	statements = []
+	if type(expression) == type(tuple()):
+		statements = [expression[0] + '=']
+
+
 
 def createPostamble(regmap):
 	print "####Function Epilogue####"
@@ -192,7 +210,7 @@ if __name__ == "__main__":
 	for func in funcdef:
 		
 		createPreamble(func['funcName'])
-		createLocals(func['declarations'])
+		createLocals(func['declarations'], func['linearVars'])
 		
 		regmap = registryMap(func['parameters'], func['declarations'])
 		updatedRegmap = generateStatements(func['statements'], regmap)
