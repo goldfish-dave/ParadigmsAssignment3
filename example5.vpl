@@ -1,7 +1,7 @@
 func myAddMult(a,b,c)
 	var x, y;
-	a = (a + b) * (a + b);
-	a = b + x + y + c;
+	x = (a + b) * (a + b);
+	y = b + x + c;
 	x = ( x + y ) + (20.0 + 0.4);
 	x = (a + c) * (b + a);
 	y = a + b;

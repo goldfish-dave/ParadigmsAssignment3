@@ -22,6 +22,7 @@ int main (void) {
 	for (i = 0; i < NUM; i++) {
 		a[i] = i;
 		b[i] = NUM - i;
+		c[i] = 0;
 	}
 	
 	*a = (float) 123;
