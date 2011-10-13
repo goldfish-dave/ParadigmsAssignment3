@@ -1,11 +1,11 @@
 funcdef =	[
 				{
 					'declarations' : ['x', 'y', 'z']
-#					, 'statements' : [('c', 20), ('c', ['c', 'plus', ['a', 'plus' 'b']])]
-			
-					, 'statements' : [('c', ['plus', ['mult', 'a', 'b'], ['mult', 'a', 'b']]) , ('x', 20), ('c', ['plus', '100', 40])]
+#					, 'statements' : [('c' ,['plus', ['plus', ['plus', 'a', 'c'], 'x'], 'b'])]
 
-#					, 'statements' : [('c', ['plus', 'a', 'b'])]
+					, 'statements' : [('c' ,['plus', 'a' ,['plus', ['plus', 'x', 'b'], 'c']])]
+#					, 'statements' : [('c', ['plus', ['mult', 'a', 'b'], ['mult', 'a', 'b']]) , ('x', 20), ('c', ['plus', '100', 40])]
+#					, 'statements' : [('c', ['plus', 'a' ,['plus', ['plus', 'a', 'b'], 'c']]), ('c', ['plus' , ['plus', ['plus', 'a', 'a'], 'c'] , ['plus', 'c', 20]])]
 #					, 'statements' : [('c', ['plus' , ['plus', ['plus', 'a', 'a'], 'c'] , ['plus', 'd', 20]])]
 #					, 'statements' : [('c', ['plus' , 'c' , ['plus', ['plus', 'c', 'd'], 'b']])]
 #					, 'statements' : [('x', 20)]#, ('c', 'x')]
@@ -187,6 +187,7 @@ def generateStatements(statements, regmap):
 	return regmap
 
 def unwrap(expression, regmap): #unwraps a statement: ('c', ['a', 'plus' ['a', 'plus', 'b']]) ==> <x1 = a + b>, <c = a + x1>
+	#need to check for specific case c = (a)
 	#recursively breaks down the contents of statement to it's basic form
 
 	if type(expression) in [type(str()), type(int()), type(float())]:
