@@ -1,39 +1,12 @@
-"""[
-	{	'declarations': ['x', 'y', 'z'],
-	 	'statements': [],
-	 	'parameters': ['a', 'b', 'c'],
-	 	'funcName': 'mymin'
-		'linearVars' : 10
-	}
-]
-
-
-	
-remember, statements are only of the form:
-
-IDENT = factor
-IDENT = factor op factor
-
-and in the simple case a factor is either a variable or a constant
-
-so expect statements to look like this:
-
-statements = 
-	[ 
-		( 'c' , 'b' ),
-		( 'x' , [ 'a', 'plus', 'c' ] ),
-		( 'a' , [ 'x', 'mult', 'b' ] ),
-		( 'y' , [ 'a', 'min' , 'x' ] )
-	]
-
-"""
 funcdef =	[
 				{
 					'declarations' : ['x', 'y', 'z']
 #					, 'statements' : [('c', 20), ('c', ['c', 'plus', ['a', 'plus' 'b']])]
 			
-#					, 'statements' : [('c', ['plus', ['mult', 'a', 'b'], ['mult', 'a', 'b']]) ]
-					, 'statements' : [('c', ['plus' , ['plus', ['plus', 'a', 'a'], 'c'] , ['plus', 'd', 'b']])]
+					, 'statements' : [('c', ['plus', ['mult', 'a', 'b'], ['mult', 'a', 'b']]) , ('x', 20), ('c', ['plus', '100', 40])]
+
+#					, 'statements' : [('c', ['plus', 'a', 'b'])]
+#					, 'statements' : [('c', ['plus' , ['plus', ['plus', 'a', 'a'], 'c'] , ['plus', 'd', 20]])]
 #					, 'statements' : [('c', ['plus' , 'c' , ['plus', ['plus', 'c', 'd'], 'b']])]
 #					, 'statements' : [('x', 20)]#, ('c', 'x')]
 					, 'parameters' : ['a', 'b', 'c']
@@ -57,7 +30,6 @@ movaps (%r10), %xmm1
 
 movaps %xmm1, (%r11)
 
-#if rax == const etc.
 addq $16, %rax
 addq $16, %r11
 decq %rbx
@@ -83,12 +55,15 @@ jnz .loop_begin<loopcounter>
 
 .loop_end<loopcounter>:
 """
+
 class registryMap:
 	def __init__(self, parameters, local, linearVars):
 		self.mapping = {}
 		self.constants = []
 		self.tempVars = []
 		self.usedTempVars = []
+		self.loopVal = -1
+
 		parameterRegisters = ['%rsi', '%rdx', '%rcx', '%r8', 'r9']
 		for parameter in range(len(parameters)):
 			self.mapping[parameters[parameter]] = "movq " + parameterRegisters[parameter] + ', %s' 
@@ -138,6 +113,10 @@ andq $-16, %s"""
 			except ValueError:
 				print "undeclared variable"
 		return self.mapping[var].replace('%s', register)
+	
+	def getLoopVal(self):
+		self.loopVal += 1
+		return self.loopVal
 
 def createPreamble(name):
 
@@ -170,7 +149,8 @@ andq $-16, %rsp
 	print assignMemory
 
 def generateStatements(statements, regmap):
-	print '####Code body####\n'
+	print '####Function body####\n'
+	print "##suffix '.' means temporary variable used for linearisation##"
 	loopval = 0
 
 	for statement in statements:
@@ -200,19 +180,17 @@ def generateStatements(statements, regmap):
 
 		loopval += 1
 		"""
-		print 'statement = ', statement
-		print 'unwrap = ' + str(unwrap(statement, regmap))
+		generateAssembly(unwrap(statement, regmap), regmap, regmap.getLoopVal())
+		regmap.resetTempVars()
 
 	return regmap
 
 def unwrap(expression, regmap): #unwraps a statement: ('c', ['a', 'plus' ['a', 'plus', 'b']]) ==> [<x1 = a + b>, <c = a + x1>]
-
-	statements = []
+	
 	if type(expression) in [type(str()), type(int()), type(float())]:
 		return expression
 
 	if type(expression) == type(tuple()):
-#		print (expression[0], unwrap(expression[1], regmap))
 		return (expression[0], unwrap(expression[1], regmap)) 
 	
 	if type(expression) == type(list()):
@@ -221,25 +199,52 @@ def unwrap(expression, regmap): #unwraps a statement: ('c', ['a', 'plus' ['a', '
 		
 		if type(expression[1]) == type(list()):
 			expr1 = regmap.getTempVar()
-			statements += [[expr1, unwrap(expression[1], regmap)]]
-			print expr1 + '=' + str(statements[-1]), "here1"
-#			statements = statements[:-1]
+#			print [expr1, unwrap(expression[1], regmap)]
+			generateAssembly([expr1, unwrap(expression[1], regmap)], regmap, regmap.getLoopVal())
+
 		if type(expression[2]) == type(list()):
 			expr2 = regmap.getTempVar()
-			statements += [[expr2, unwrap(expression[2], regmap)]]
-			print expr2 + '=' + str(statements[-1]), "here2"
+#			print [expr2, unwrap(expression[2], regmap)]
+			generateAssembly([expr2, unwrap(expression[2], regmap)], regmap, regmap.getLoopVal())
 
-#			statements = statements[:-1]
-		statements += [expression[0], unwrap(expr1, regmap), unwrap(expr2, regmap)] 
-#		print statements, "here3"
+		return [expression[0], unwrap(expr1, regmap), unwrap(expr2, regmap)] 
 
-	return statements
+def generateAssembly(statement, regmap, loopval):
+	operations = {'plus' : 'addps', 'mult' : 'mulps', 'sub' : 'subps', '/' : 'divps', 'min' : 'minps'}
 
-def assignmentParser(statement):
-	operations = ['plus']
-	for token in statement:
-		if token in operations:
-			print statement[0]	
+	if type(statement[1]) ==  type(list()): 
+
+		#assignment involving operations, x = a + b
+
+		if statement[1][0] in operations:
+			print "##%s = %s + %s##" %(statement[0], statement[1][1], statement[1][2])
+			print regmap.putVar(statement[0], '%r11')
+
+			constcheck1 = regmap.putVar(statement[1][1], '%rax')
+			constcheck2 = regmap.putVar(statement[1][2], '%r10')
+			
+			print constcheck1
+			print constcheck2
+
+			temp = operationCode.replace('<loopcounter>', str(loopval)).replace('<operation>', operations[statement[1][0]])
+			if constcheck1.split()[0] == 'leaq':
+				temp = temp.replace('addq $16, %rax', '#line "addq $16, %rax" removed because the source is a constant')
+			if constcheck2.split()[0] == 'leaq':
+				temp = temp.replace('addq $16, %r10', '#line "addq $16, %r10" removed because the source is a constant')
+
+			print temp
+
+	else: #straight assignment, x = y
+		print "##%s = %s##" % (statement[0], statement[1])
+		print regmap.putVar(statement[0], '%r10')
+		constcheck = regmap.putVar(statement[1], '%rax')
+
+		print constcheck
+		if constcheck.split()[0] == 'leaq':
+			print assignmentCode.replace('<loopcounter>', str(loopval)).replace('addq $16, %rax', '#line "addq $16, %rax" removed because RHS is a constant\n')
+		else:
+			print assignmentCode.replace('<loopcounter>', str(loopval))
+#
 def createPostamble(regmap):
 	print "####Function Epilogue####"
 	print """
@@ -257,8 +262,7 @@ ret"""
 	.float %f
 	.float %f""".replace('%f', str(constant))
 
-if __name__ == "__main__":
-	
+def parseAttributeGrammar(funcdef):
 	for func in funcdef:
 		
 		createPreamble(func['funcName'])
@@ -268,3 +272,8 @@ if __name__ == "__main__":
 		updatedRegmap = generateStatements(func['statements'], regmap)
 		
 		createPostamble(updatedRegmap)
+
+
+if __name__ == "__main__":
+	
+	parseAttributeGrammar(funcdef)
