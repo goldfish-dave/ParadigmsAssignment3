@@ -7,7 +7,11 @@ options {
 
 prog		
 @init {mapping = []}
-@after { print mapping }
+@after {
+import format
+format.parseAttributeGrammar(mapping)
+print type(format.parseAttributeGrammar)
+}
 		:
 		m[mapping] EOF
 		;
