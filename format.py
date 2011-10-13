@@ -32,9 +32,9 @@ funcdef =	[
 				{
 					'declarations' : ['x', 'y', 'z']
 #					, 'statements' : [('c', 20), ('c', ['c', 'plus', ['a', 'plus' 'b']])]
-
-#					, 'statements' : [('c', ['c', 'plus', ['a', 'plus' 'b']])]
-					, 'statements' : [('x', 20)]#, ('c', 'x')]
+			
+#					, 'statements' : [('c', ['plus' , 'c' , ['a', 'plus', 'b']])]
+					, 'statements' : [('x', 20) , ('c', 'x')]
 					, 'parameters' : ['a', 'b', 'c']
 					, 'funcName' : 'mymin'
 					, 'linearVars' : 10
@@ -98,7 +98,7 @@ class registryMap:
 movq %rdi, %s
 imulq $4, %s, %s
 addq $16, %s
-imulq $""" + str(varspot) + """, %s, %s
+imulq $""" + str(varspot * 16) + """, %s, %s
 subq %rbp, %s
 negq %s
 andq $-16, %s
@@ -177,17 +177,35 @@ def generateStatements(statements, regmap):
 
 		loopval += 1
 #		"""
-#		print 'unwrap = ', unwrap(statement, regmap)[1]
+#		print 'statement = ', statement
+#		print 'unwrap = ' + str(unwrap(statement, regmap))
 	return regmap
 
 def unwrap(expression, regmap): #unwraps a statement: ('c', ['a', 'plus' ['a', 'plus', 'b']]) ==> [<x1 = a + b>, <c = a + x1>]
-	
-	statements = []
+
+	statements = [(), []]
+	if type(expression) in [type(str()), type(int()), type(float())]:
+		return expression
+
 	if type(expression) == type(tuple()):
-		statements = [expression[0] + '=']
+		return (expression[0], unwrap(expression[1], regmap)) 
+	
+	if type(expression) == type(list()):
+		expr1 = expression[1]
+		expr2 = expression[2]
 
+		if type(expression[1]) == type(list()):
+			expr1 = 'tempvar1'
+			statements[1] += ('tempvar1', unwrap(expression[1], regmap), unwrap(expression[2], regmap))
 
+		if type(expression[2]) == type(list()):
+			expr1 = 'tempvar2'
+			statements[1] += ('tempvar2', unwrap(expression[1], regmap), unwrap(expression[2], regmap))
 
+#		statements = [expression[0], unwrap(expression[1], regmap), unwrap(expression[2], regmap)] 
+		statements[0] = [expression[0], unwrap(expr1, regmap), unwrap(expr2, regmap)] 
+
+	return statements
 def createPostamble(regmap):
 	print "####Function Epilogue####"
 	print """

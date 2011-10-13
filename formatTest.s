@@ -29,7 +29,7 @@ andq $-16, %rsp
 movq %rdi, %r10
 imulq $4, %r10, %r10
 addq $16, %r10
-imulq $1, %r10, %r10
+imulq $16, %r10, %r10
 subq %rbp, %r10
 negq %r10
 andq $-16, %r10
@@ -52,6 +52,36 @@ decq %rbx
 jnz .loop_begin0
 
 .loop_end0:
+
+##c = x##
+
+movq %rcx, %r10
+#assign #1 variable to %rax
+
+movq %rdi, %rax
+imulq $4, %rax, %rax
+addq $16, %rax
+imulq $16, %rax, %rax
+subq %rbp, %rax
+negq %rax
+andq $-16, %rax
+
+
+movq %rdi, %rbx
+shl $2, %rbx
+jz .loop_end1
+
+.loop_begin1:
+
+movaps (%rax), %xmm0
+movaps %xmm0, (%r10)
+
+addq $16, %rax
+addq $16, %r10
+decq %rbx
+jnz .loop_begin1
+
+.loop_end1:
 
 ####Function Epilogue####
 
