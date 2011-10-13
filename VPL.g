@@ -4,14 +4,35 @@ options {
 	language=Python;
 	backtrack=true;
 }
-
+/**
+* In this grammar file we defined an attribute grammar to parse valid vpl.
+* After the parsing, a variable labeled mapping will exist, which is a list
+* of function objects. This list is iterated over, using the attributes in 
+* the function objects to print out the appropriate x86_64 assembly.
+*
+* Function objects have the following attributes:
+* function =
+*   {
+*     'funcName' : string,
+*     'parameters' : list of strings,
+*     'declarations' : list of strings,
+*     'statements' : list of statements to be executed,
+*     'linearVars' : int
+*   }
+*  NB: linearVars is used as an upper bound on the number of temporary local
+*      variables that will be needed to evaluate an expression.
+*  
+*  NB': statements are eithers lists, with the function at the start, or atoms
+        , much like lisp data types
+*/
 prog		
 @init {mapping = []}
 		:	m[mapping] EOF
 {
 import format
+
+# This line will print out the appropriate assembly
 format.parseAttributeGrammar( $m.allFunctions )
-#print mapping
 }
 		;
 
@@ -139,11 +160,19 @@ e3 returns [expression]
 		|	NUM   { expression = float($NUM.text) }
 		;
 
+// Identification is an important part of keeping our citizens safe.
+// Please keep your identification with you at all times, or you will 
+// be processed.
 IDENT	:	('a'..'z'|'A'..'Z'|'_')('a'..'z'|'A'..'Z'|'0'..'9'|'_')*
 		;
 
+// I'm tired of being what you want me to be
+// Feeling so faithless, lost under the surface
+// I don't know what you're expecting of me
+// Put under the pressure of walking in your shooooooooeeeeeeeeeess
 NUM		:	'0'..'9'+ ('.''0'..'9'+)?
 		;
 
+// No space like white space
 WHITESPACE 
 		:	( '\t' | ' ' | '\r' | '\n'| '\u000C' )+ { $channel = HIDDEN; }; //sets all whitespace to hidden
