@@ -22,18 +22,17 @@ andq $-16, %rsp
 
 ####Code body####
 
-##z = 20##
+##x = 20##
 
-#assign #3 variable to %r10
+#assign #1 variable to %r10
 
 movq %rdi, %r10
 imulq $4, %r10, %r10
 addq $16, %r10
-imulq $48, %r10, %r10
+imulq $16, %r10, %r10
 subq %rbp, %r10
 negq %r10
 andq $-16, %r10
-
 leaq .const20.0, %rax
 
 movq %rdi, %rbx
@@ -53,28 +52,18 @@ jnz .loop_begin0
 
 .loop_end0:
 
-##x = z##
+##c = x##
 
-#assign #1 variable to %r10
-
-movq %rdi, %r10
-imulq $4, %r10, %r10
-addq $16, %r10
-imulq $16, %r10, %r10
-subq %rbp, %r10
-negq %r10
-andq $-16, %r10
-
-#assign #3 variable to %rax
+movq %rcx, %r10
+#assign #1 variable to %rax
 
 movq %rdi, %rax
 imulq $4, %rax, %rax
 addq $16, %rax
-imulq $48, %rax, %rax
+imulq $16, %rax, %rax
 subq %rbp, %rax
 negq %rax
 andq $-16, %rax
-
 
 movq %rdi, %rbx
 shl $2, %rbx
@@ -91,36 +80,6 @@ decq %rbx
 jnz .loop_begin1
 
 .loop_end1:
-
-##c = x##
-
-movq %rcx, %r10
-#assign #1 variable to %rax
-
-movq %rdi, %rax
-imulq $4, %rax, %rax
-addq $16, %rax
-imulq $16, %rax, %rax
-subq %rbp, %rax
-negq %rax
-andq $-16, %rax
-
-
-movq %rdi, %rbx
-shl $2, %rbx
-jz .loop_end2
-
-.loop_begin2:
-
-movaps (%rax), %xmm0
-movaps %xmm0, (%r10)
-
-addq $16, %rax
-addq $16, %r10
-decq %rbx
-jnz .loop_begin2
-
-.loop_end2:
 
 ####Function Epilogue####
 

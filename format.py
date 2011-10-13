@@ -27,14 +27,14 @@ statements =
 	]
 
 """
-
 funcdef =	[
 				{
 					'declarations' : ['x', 'y', 'z']
 #					, 'statements' : [('c', 20), ('c', ['c', 'plus', ['a', 'plus' 'b']])]
 			
-#					, 'statements' : [('c', ['plus' , 'c' , ['a', 'plus', 'b']])]
-					, 'statements' : [('z', 20), ('x', 'z') , ('c', 'x')]
+					, 'statements' : [('c', ['plus' , ['plus', 'a', 'c'] , ['plus', 'd', 'b']])]
+#					, 'statements' : [('c', ['plus' , 'c' , ['plus', ['plus', 'c', 'd'], 'b']])]
+#					, 'statements' : [('x', 20)]#, ('c', 'x')]
 					, 'parameters' : ['a', 'b', 'c']
 					, 'funcName' : 'mymin'
 					, 'linearVars' : 10
@@ -83,9 +83,11 @@ jnz .loop_begin<loopcounter>
 .loop_end<loopcounter>:
 """
 class registryMap:
-	def __init__(self, parameters, local):
+	def __init__(self, parameters, local, linearVars):
 		self.mapping = {}
 		self.constants = []
+		self.tempVars = []
+		self.usedTempVars = []
 		parameterRegisters = ['%rsi', '%rdx', '%rcx', '%r8', 'r9']
 		for parameter in range(len(parameters)):
 			self.mapping[parameters[parameter]] = "movq " + parameterRegisters[parameter] + ', %s' 
@@ -101,11 +103,31 @@ addq $16, %s
 imulq $""" + str(varspot * 16) + """, %s, %s
 subq %rbp, %s
 negq %s
-andq $-16, %s
-"""
+andq $-16, %s"""
 
 			varspot += 1
+
+		for i in range(linearVars):
+			self.tempVars += ['.' + str(i)]
+			self.mapping['.' + str(i)] ="""
+movq %rdi, %s
+imulq $4, %s, %s
+addq $16, %s
+imulq $""" + str(varspot * 16) + """, %s, %s
+subq %rbp, %s
+negq %s
+andq $-16, %s"""
+
+			varspot += 1
+
+	def getTempVar(self): #returns the name of an unlocked temp variable and locks it 
+		self.usedTempVars.append(self.tempVars.pop())
+		return self.usedTempVars[-1]
 	
+	def resetTempVars(self): #unlocks all temp variables making them free to use again
+		self.tempVars += self.usedTempVars
+		self.usedTempVars = []
+
 	def putVar(self, var, register): #generates the assembly to put the memory address of variable var into the register specified
 		if var not in self.mapping: #check if it's a constant
 			try:
@@ -152,7 +174,7 @@ def generateStatements(statements, regmap):
 
 	for statement in statements:
 #		print statement
-#		"""
+		"""
 		if type(statement[1]) ==  type(list()): 
 
 			#assignment involving operations, x = a + b
@@ -176,36 +198,47 @@ def generateStatements(statements, regmap):
 				print assignmentCode.replace('<loopcounter>', str(loopval))
 
 		loopval += 1
-#		"""
-#		print 'statement = ', statement
-#		print 'unwrap = ' + str(unwrap(statement, regmap))
+		"""
+		print 'statement = ', statement
+		print 'unwrap = ' + str(unwrap(statement, regmap))
+
 	return regmap
 
 def unwrap(expression, regmap): #unwraps a statement: ('c', ['a', 'plus' ['a', 'plus', 'b']]) ==> [<x1 = a + b>, <c = a + x1>]
 
-	statements = [(), []]
+	statements = []
 	if type(expression) in [type(str()), type(int()), type(float())]:
 		return expression
 
 	if type(expression) == type(tuple()):
+#		print (expression[0], unwrap(expression[1], regmap))
 		return (expression[0], unwrap(expression[1], regmap)) 
 	
 	if type(expression) == type(list()):
 		expr1 = expression[1]
 		expr2 = expression[2]
-
+		
 		if type(expression[1]) == type(list()):
-			expr1 = 'tempvar1'
-			statements[1] += ('tempvar1', unwrap(expression[1], regmap), unwrap(expression[2], regmap))
-
+			expr1 = regmap.getTempVar()
+			statements += [[expr1, unwrap(expression[1], regmap)]]
+			print expr1 + '=' + str(statements[-1]), "here1"
+#			statements = statements[:-1]
 		if type(expression[2]) == type(list()):
-			expr1 = 'tempvar2'
-			statements[1] += ('tempvar2', unwrap(expression[1], regmap), unwrap(expression[2], regmap))
+			expr2 = regmap.getTempVar()
+			statements += [[expr2, unwrap(expression[2], regmap)]]
+			print expr2 + '=' + str(statements[-1]), "here2"
 
-#		statements = [expression[0], unwrap(expression[1], regmap), unwrap(expression[2], regmap)] 
-		statements[0] = [expression[0], unwrap(expr1, regmap), unwrap(expr2, regmap)] 
+#			statements = statements[:-1]
+		statements += [expression[0], unwrap(expr1, regmap), unwrap(expr2, regmap)] 
+		print statements, "here3"
 
 	return statements
+
+def assignmentParser(statement):
+	operations = []
+	for token in statement:
+#		if token in 
+		pass
 def createPostamble(regmap):
 	print "####Function Epilogue####"
 	print """
@@ -230,7 +263,7 @@ if __name__ == "__main__":
 		createPreamble(func['funcName'])
 		createLocals(func['declarations'], func['linearVars'])
 		
-		regmap = registryMap(func['parameters'], func['declarations'])
+		regmap = registryMap(func['parameters'], func['declarations'], func['linearVars'])
 		updatedRegmap = generateStatements(func['statements'], regmap)
 		
 		createPostamble(updatedRegmap)
