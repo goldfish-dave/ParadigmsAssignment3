@@ -7,13 +7,11 @@ options {
 
 prog		
 @init {mapping = []}
-@after {
+		:	m[mapping] EOF
+{
 import format
-format.parseAttributeGrammar(mapping)
-print type(format.parseAttributeGrammar)
+format.parseAttributeGrammar( $m.allFunctions )
 }
-		:
-		m[mapping] EOF
 		;
 
 // breaks the file into functions
