@@ -34,7 +34,7 @@ funcdef =	[
 #					, 'statements' : [('c', 20), ('c', ['c', 'plus', ['a', 'plus' 'b']])]
 			
 #					, 'statements' : [('c', ['plus' , 'c' , ['a', 'plus', 'b']])]
-					, 'statements' : [('x', 20) , ('c', 'x')]
+					, 'statements' : [('z', 20), ('x', 'z') , ('c', 'x')]
 					, 'parameters' : ['a', 'b', 'c']
 					, 'funcName' : 'mymin'
 					, 'linearVars' : 10
