@@ -28,6 +28,7 @@ prog
 @init {mapping = []}
 		:
 		m[mapping] EOF
+		{ print ($m.allFunctions) }
 		;
 
 // breaks the file into functions
@@ -95,50 +96,50 @@ s2 returns [statement]
 		;
 
 // breaks down expressions into e2 or plus/mins 
-e [inherited] returns [synth]
-		:	e2[None] '+' e_1=e[None]
+e returns [expression]
+		:	e2'+' e_1=e
 		{ op = "+"
-		  arg1 = $e2.synth
-		  arg2 = $e_1.synth
-		  synth = [op, arg1, arg2]
+		  arg1 = $e2.expression
+		  arg2 = $e_1.expression
+		  expression = [op, arg1, arg2]
 		}
-		|	e2[None] '-' e_1=e[None] 
+		|	e2 '-' e_1=e 
 		{ op = "-"
-		  arg1 = $e2.synth
-		  arg2 = $e_1.synth
-		  synth = [op, arg1, arg2]
+		  arg1 = $e2.expression
+		  arg2 = $e_1.expression
+		  expression = [op, arg1, arg2]
 		}
-		|	e2[None] 	 { synth = $e.synth }
+		|	e2 	 { expression = $e2.expression }
 		;
 
 // breaks down expressions into e3 or mult/div
-e2 [inherited] returns [synth]
-		:	e3[None] '*' e2_1=e2[None]
+e2 returns [expression]
+		:	e3 '*' e2_1=e2
 		{ op = "*"
-		  arg1 = $e3.synth
-		  arg2 = $e2_1.synth
-		  synth = [op, arg1, arg2]
+		  arg1 = $e3.expression
+		  arg2 = $e2_1.expression
+		  expression = [op, arg1, arg2]
 		}
-		|	e3[None] '/' e2_1=e2[None] 
+		|	e3 '/' e2_1=e2 
 		{ op = "/"
-		  arg1 = $e3.synth
-		  arg2 = $e2_1.synth
-		  synth = [op, arg1, arg2]
+		  arg1 = $e3.expression
+		  arg2 = $e2_1.expression
+		  expression = [op, arg1, arg2]
 		}
-		|	e3[None]  { synth = $e3.synth }
+		|	e3 { expression = $e3.expression }
 		;
 
 // breaks expressions down into min calls, parenthesis, idents or nums
-e3 [inherited] returns [synth]
-		:	'min' '(' e_1=e[None] ',' e_2=e[None] ')' 
+e3 returns [expression]
+		:	'min' '(' e_1=e ',' e_2=e ')' 
 		{ op = "min"
-		  arg1 = $e_1.synth
-		  arg2 = $e_2.synth
-		  synth = [op, arg1, arg2]
+		  arg1 = $e_1.expression
+		  arg2 = $e_2.expression 
+		  expression = [op, arg1, arg2]
 		}
-		|	'(' e[None] ')' { synth = $e.synth }
-		|	IDENT { synth = str($IDENT.text) }
-		|	NUM   { synth = float($NUM.text) }
+		|	'(' e ')' { expression = $e.expression }
+		|	IDENT { expression = str($IDENT.text) }
+		|	NUM   { expression = float($NUM.text) }
 		;
 
 IDENT	:	('a'..'z'|'A'..'Z'|'_')('a'..'z'|'A'..'Z'|'0'..'9'|'_')*
