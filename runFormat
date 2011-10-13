@@ -1,0 +1,4 @@
+python format.py > formatTest.s
+gcc -Wall -W stub.c formatTest.s -o testprogram
+
+./testprogram
