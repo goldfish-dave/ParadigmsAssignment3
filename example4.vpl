@@ -1,0 +1,6 @@
+func myExp(a,b,c)
+	var x,y;
+	x = a + ( b * y ) ;
+	y = (x + x) - a;
+	c = x / y;
+end
