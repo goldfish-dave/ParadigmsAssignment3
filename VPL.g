@@ -21,23 +21,19 @@ m [someFunctions] returns [allFunctions]
 // breaks functions into their name, parameters, declared local variables and statements
 f returns [function]
 @init { 
-def countNeededTempVars(expr):
-  typ1 = type(expr[1])
-  typ2 = type(expr[2])
-  tempVar = 0
-  if typ1 == list:
-    tempVar = tempVar + countNeededTempVars(expr[1])
-  if typ2 == list:
-    tempVar = tempVar + countNeededTempVars(expr[2])
-  if typ1 == list and typ2 == list:
-    tempVar = tempVar + 1
-  elif typ1 == list or typ2 == list:
-    tempVar = tempVar + 1
-  return tempVar 
+# computes the maximum number of temporary vars required
+def maxTempVars(statements):
+  return max(map(tempVars, statements))
+
+def tempVars(statement):
+  return exprTempVars(statement[1])
+
+def exprTempVars(expr):
+  if type(expr) is not list:
+    return 0
+  return 1 + sum([exprTempVars(xp) for xp in expr])
 }
-@after { print countNeededTempVars(function["statements"][0][1]) }
 		:	'func' IDENT
-			//define function name here
 			{
 				function = {}
 				function["funcName"] = str($IDENT.text)
@@ -45,7 +41,8 @@ def countNeededTempVars(expr):
 			}
 			p { function["parameters"] = $p.parameters } d { function["declarations"] = $d.declarations }
 			s[emptyStatements] 'end' 
-			{ function["statements"] = $s.allStatements }
+			{ function["statements"] = $s.allStatements
+			  function["linearVars"] = maxTempVars(function["statements"]) }
 		;
 
 // breaks down the function parameters
