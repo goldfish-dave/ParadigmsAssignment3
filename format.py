@@ -57,7 +57,7 @@ jnz .loop_begin<loopcounter>
 """
 
 class registryMap: #used to store all the assembly needed to access the variables as well as variables needed to write the assembly
-	def __init__(self, parameters, local, linearVars): #takes in the parameters and locals the function takes, as well as the minimum int of variables needed to linearise all the statements
+	def __init__(self, parameters, local, linearVars, loopVal): #takes in the parameters and locals the function takes, as well as the minimum int of variables needed to linearise all the statements
 		self.mapping = {}
 		self.constants = []
 
@@ -65,7 +65,7 @@ class registryMap: #used to store all the assembly needed to access the variable
 		self.tempVars = []
 		self.usedTempVars = [] 
 
-		self.loopVal = -1 #used for the unique identifier for .loop_begin() etc.
+		self.loopVal = loopVal #used for the unique identifier for .loop_begin() etc.
 
 		parameterRegisters = ['%rsi', '%rdx', '%rcx', '%r8', 'r9'] #contain (in order) the arguments of the function and their corrosponding register
 		for parameter in range(len(parameters)):
@@ -271,11 +271,12 @@ ret"""
 	.float %f""".replace('%f', str(constant))
 
 def parseAttributeGrammar(funcdef): #main function to call everything in order
+	regmap = registryMap([], [], 0, -1)
 	for func in funcdef:
 		createPreamble(func['funcName'])
 		createLocals(func['declarations'], func['linearVars'])
 		
-		regmap = registryMap(func['parameters'], func['declarations'], func['linearVars'])
+		regmap = registryMap(func['parameters'], func['declarations'], func['linearVars'], regmap.getLoopVal())
 		updatedRegmap = generateStatements(func['statements'], regmap)
 		
 		createPostamble(updatedRegmap)
