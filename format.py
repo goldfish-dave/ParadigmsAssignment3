@@ -56,21 +56,23 @@ jnz .loop_begin<loopcounter>
 .loop_end<loopcounter>:
 """
 
-class registryMap:
-	def __init__(self, parameters, local, linearVars):
+class registryMap: #used to store all the assembly needed to access the variables as well as variables needed to write the assembly
+	def __init__(self, parameters, local, linearVars): #takes in the parameters and locals the function takes, as well as the minimum int of variables needed to linearise all the statements
 		self.mapping = {}
 		self.constants = []
-		self.tempVars = []
-		self.usedTempVars = []
-		self.loopVal = -1
 
-		parameterRegisters = ['%rsi', '%rdx', '%rcx', '%r8', 'r9']
+		#tempvars contains all the unused temporary variables for linearisation, lock/unlock scheme
+		self.tempVars = []
+		self.usedTempVars = [] 
+
+		self.loopVal = -1 #used for the unique identifier for .loop_begin() etc.
+
+		parameterRegisters = ['%rsi', '%rdx', '%rcx', '%r8', 'r9'] #contain (in order) the arguments of the function and their corrosponding register
 		for parameter in range(len(parameters)):
 			self.mapping[parameters[parameter]] = "movq " + parameterRegisters[parameter] + ', %s' 
-
 		
 		varspot = 1
-		for var in local:
+		for var in local: #maps all local vars to the assembly required to access them
 			self.mapping[var] = "#assign #" + str(varspot) + " variable to %s\n"
 			self.mapping[var] +="""
 movq %rdi, %s
@@ -83,7 +85,7 @@ andq $-16, %s"""
 
 			varspot += 1
 
-		for i in range(linearVars):
+		for i in range(linearVars): #maps all linear variables to the assembly required to access them
 			self.tempVars += ['.' + str(i)]
 			self.mapping['.' + str(i)] ="""
 movq %rdi, %s
@@ -114,12 +116,11 @@ andq $-16, %s"""
 				print "undeclared variable"
 		return self.mapping[var].replace('%s', register)
 	
-	def getLoopVal(self):
+	def getLoopVal(self): #returns a unique int for use in .loop_begin<int> etc.
 		self.loopVal += 1
 		return self.loopVal
 
 def createPreamble(name):
-
 	preamble = """####Function Definitions####
 
 .text
@@ -185,47 +186,51 @@ def generateStatements(statements, regmap):
 
 	return regmap
 
-def unwrap(expression, regmap): #unwraps a statement: ('c', ['a', 'plus' ['a', 'plus', 'b']]) ==> [<x1 = a + b>, <c = a + x1>]
-	
+def unwrap(expression, regmap): #unwraps a statement: ('c', ['a', 'plus' ['a', 'plus', 'b']]) ==> <x1 = a + b>, <c = a + x1>
+	#recursively breaks down the contents of statement to it's basic form
+
 	if type(expression) in [type(str()), type(int()), type(float())]:
 		return expression
 
-	if type(expression) == type(tuple()):
+	if type(expression) == type(tuple()): #special case, tuple represents the root node
 		return (expression[0], unwrap(expression[1], regmap)) 
 	
 	if type(expression) == type(list()):
 		expr1 = expression[1]
 		expr2 = expression[2]
-		
+
+		#checks if the expression can be further broken down
 		if type(expression[1]) == type(list()):
 			expr1 = regmap.getTempVar()
-#			print [expr1, unwrap(expression[1], regmap)]
 			generateAssembly([expr1, unwrap(expression[1], regmap)], regmap, regmap.getLoopVal())
 
 		if type(expression[2]) == type(list()):
 			expr2 = regmap.getTempVar()
-#			print [expr2, unwrap(expression[2], regmap)]
 			generateAssembly([expr2, unwrap(expression[2], regmap)], regmap, regmap.getLoopVal())
 
 		return [expression[0], unwrap(expr1, regmap), unwrap(expr2, regmap)] 
 
 def generateAssembly(statement, regmap, loopval):
-	operations = {'plus' : 'addps', 'mult' : 'mulps', 'sub' : 'subps', '/' : 'divps', 'min' : 'minps'}
+	operations = {'plus' : 'addps', 'mult' : 'mulps', 'sub' : 'subps', '/' : 'divps', 'min' : 'minps'} #operations from the attribute grammar mapping to their equivalent assembly intructions
 
-	if type(statement[1]) ==  type(list()): 
+	if type(statement[1]) ==  type(list()): #type list indicates a operation 
 
 		#assignment involving operations, x = a + b
 
 		if statement[1][0] in operations:
 			print "##%s = %s + %s##" %(statement[0], statement[1][1], statement[1][2])
-			print regmap.putVar(statement[0], '%r11')
 
+			#loads the required address into the 'destination' register
+			print regmap.putVar(statement[0], '%r11')
+			
+			#loads the required addresses into the 'source' registers
 			constcheck1 = regmap.putVar(statement[1][1], '%rax')
 			constcheck2 = regmap.putVar(statement[1][2], '%r10')
 			
 			print constcheck1
 			print constcheck2
-
+			
+			#check for constants in the 'sources', which requires specific lines to be deleted
 			temp = operationCode.replace('<loopcounter>', str(loopval)).replace('<operation>', operations[statement[1][0]])
 			if constcheck1.split()[0] == 'leaq':
 				temp = temp.replace('addq $16, %rax', '#line "addq $16, %rax" removed because the source is a constant')
@@ -236,22 +241,25 @@ def generateAssembly(statement, regmap, loopval):
 
 	else: #straight assignment, x = y
 		print "##%s = %s##" % (statement[0], statement[1])
-		print regmap.putVar(statement[0], '%r10')
-		constcheck = regmap.putVar(statement[1], '%rax')
 
+		#destination address loading
+		print regmap.putVar(statement[0], '%r10')
+		
+		#checks if RHS is a constant
+		constcheck = regmap.putVar(statement[1], '%rax')
 		print constcheck
 		if constcheck.split()[0] == 'leaq':
 			print assignmentCode.replace('<loopcounter>', str(loopval)).replace('addq $16, %rax', '#line "addq $16, %rax" removed because RHS is a constant\n')
 		else:
 			print assignmentCode.replace('<loopcounter>', str(loopval))
-#
+
 def createPostamble(regmap):
 	print "####Function Epilogue####"
 	print """
 popq	%rbx
 leave
 ret"""
-	if regmap.constants:
+	if regmap.constants: #if the function had constants which required to be defined
 		print """
 .data
 .align 16"""
@@ -262,9 +270,8 @@ ret"""
 	.float %f
 	.float %f""".replace('%f', str(constant))
 
-def parseAttributeGrammar(funcdef):
+def parseAttributeGrammar(funcdef): #main function to call everything in order
 	for func in funcdef:
-		
 		createPreamble(func['funcName'])
 		createLocals(func['declarations'], func['linearVars'])
 		
@@ -272,7 +279,6 @@ def parseAttributeGrammar(funcdef):
 		updatedRegmap = generateStatements(func['statements'], regmap)
 		
 		createPostamble(updatedRegmap)
-
 
 if __name__ == "__main__":
 	
