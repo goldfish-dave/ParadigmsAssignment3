@@ -5,25 +5,6 @@ options {
 	backtrack=true;
 }
 
-/*tokens {
-	print='print';
-}*/
-
-@init {
-self.memory = {}
-
-# Function definitions
-def lookup(ident):
-	return self.memory[ident]
-
-def new(ident,val):
-	self.memory[ident] = val
-}
-
-@after {
-}
-
-
 prog		
 @init {mapping = []}
 		:
