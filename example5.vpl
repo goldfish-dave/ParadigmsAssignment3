@@ -1,0 +1,12 @@
+func myAddMult(a,b,c)
+	var x, y;
+	a = (a + b) * (a + b);
+	a = b + x + y + c;
+	x = ( x + y ) + (20.0 + 0.4);
+	x = (a + c) * (b + a);
+	y = a + b;
+	c = x + y;
+end
+func myadd(a,b,c)
+	c = a + 4;
+end
