@@ -211,7 +211,7 @@ def unwrap(expression, regmap): #unwraps a statement: ('c', ['a', 'plus' ['a', '
 		return [expression[0], unwrap(expr1, regmap), unwrap(expr2, regmap)] 
 
 def generateAssembly(statement, regmap, loopval):
-	operations = {'plus' : 'addps', 'mult' : 'mulps', 'sub' : 'subps', '/' : 'divps', 'min' : 'minps'} #operations from the attribute grammar mapping to their equivalent assembly intructions
+	operations = {'+' : 'addps', '*' : 'mulps', '-' : 'subps', '/' : 'divps', 'min' : 'minps'} #operations from the attribute grammar mapping to their equivalent assembly intructions
 
 	if type(statement[1]) ==  type(list()): #type list indicates a operation 
 

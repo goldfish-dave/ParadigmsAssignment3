@@ -11,6 +11,7 @@ prog
 {
 import format
 format.parseAttributeGrammar( $m.allFunctions )
+#print mapping
 }
 		;
 
