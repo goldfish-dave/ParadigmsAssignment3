@@ -31,6 +31,7 @@ movaps (%r10), %xmm1
 movaps %xmm1, (%r11)
 
 addq $16, %rax
+addq $16, %r10
 addq $16, %r11
 decq %rbx
 jnz .loop_begin<loopcounter>

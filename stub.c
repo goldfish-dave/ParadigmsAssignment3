@@ -4,7 +4,7 @@
 
 #define SSE_ALIGN (16)
 
-#define NUM (10)
+#define NUM (100)
 
 //extern void mymin(long, float *, float *, float *);
 extern void myAddMult(long, float *, float *, float *);
@@ -26,6 +26,8 @@ int main (void) {
 	}
 	
 	*a = (float) 123;
+
+
 	printf("Before:\n");
 	for (i = 0; i < NUM; i++) {
 		printf("%f \t %f \t %f\n", a[i], b[i], c[i]);

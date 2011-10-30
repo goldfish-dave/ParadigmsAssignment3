@@ -17,3 +17,5 @@ touch ${BUILD_DIR}/__init__.py
 
 #cat ${1}.s
 gcc -Wall -W stub.c ${1}.s -o my_program
+
+./my_program
